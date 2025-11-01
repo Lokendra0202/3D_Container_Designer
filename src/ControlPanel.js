@@ -195,7 +195,8 @@ function ControlPanel() {
         width: '100%',
         p: 1,
         height: 'auto',
-        minHeight: '100vh'
+        minHeight: '100vh',
+        position: 'relative'
       }
     }}>
       <Typography variant="h5" gutterBottom sx={{
@@ -249,15 +250,17 @@ function ControlPanel() {
         <CardContent>
           <Typography variant="h6">Add Elements</Typography>
           <Box sx={{
-            display: 'flex',
-            flexWrap: 'wrap',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
             gap: 1,
             '@media (max-width: 768px)': {
+              gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))',
               gap: 0.5,
               '& .MuiButton-root': {
                 minWidth: 'auto',
-                padding: '6px 8px',
-                fontSize: '0.75rem'
+                padding: '6px 4px',
+                fontSize: '0.7rem',
+                minHeight: '36px'
               }
             }
           }}>

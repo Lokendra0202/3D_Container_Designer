@@ -91,6 +91,7 @@ export default React.memo(function DraggableElement({ element }) {
     <DragControls
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
+      transformGroup
     >
       <primitive ref={meshRef} object={clonedScene} scale={element.size || [1, 1, 1]} />
     </DragControls>

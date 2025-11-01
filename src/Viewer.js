@@ -114,6 +114,13 @@ function Viewer() {
             ONE: THREE.TOUCH.ROTATE,
             TWO: THREE.TOUCH.DOLLY_PAN
           }}
+          minDistance={2}
+          maxDistance={20}
+          maxPolarAngle={Math.PI / 2}
+          minPolarAngle={0}
+          rotateSpeed={0.5}
+          zoomSpeed={0.8}
+          panSpeed={0.8}
         />
       </Canvas>
     </div>

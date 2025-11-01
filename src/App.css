@@ -31,11 +31,37 @@
 .viewer-container {
   width: 100%;
   height: 100vh;
+  touch-action: none;
+}
+
+.viewer-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+  touch-action: none;
 }
 
 @media (max-width: 768px) {
   .viewer-container {
-    height: 70vh;
+    height: 60vh;
+    min-height: 350px;
+  }
+
+  /* Improve touch targets */
+  .MuiButton-root {
+    min-height: 44px !important; /* iOS recommended touch target size */
+  }
+
+  .MuiListItem-root {
+    min-height: 48px !important;
+  }
+
+  /* Better text readability on mobile */
+  .MuiTypography-h6 {
+    font-size: 1.1rem !important;
+  }
+
+  .MuiTypography-body1 {
+    font-size: 0.9rem !important;
   }
 }
 

@@ -31,8 +31,8 @@ function App() {
         <Box sx={{
           flex: 1,
           '@media (max-width: 768px)': {
-            height: '70vh',
-            minHeight: '400px'
+            height: '60vh',
+            minHeight: '350px'
           }
         }}>
           <Viewer />
@@ -41,9 +41,9 @@ function App() {
           width: 320,
           '@media (max-width: 768px)': {
             width: '100%',
-            height: '30vh',
+            height: '40vh',
             overflowY: 'auto',
-            minHeight: '200px'
+            minHeight: '250px'
           }
         }}>
           <ControlPanel />
