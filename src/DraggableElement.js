@@ -51,8 +51,8 @@ export default React.memo(function DraggableElement({ element }) {
   const meshRef = useRef();
   const { moveElement, snapPosition, validatePosition, updateElement } = useStore();
 
-  const modelFile = element.modelUrl || (modelMap[element.type] ? `/models/${modelMap[element.type]}` : `${element.type}.glb`);
-  const { scene } = useGLTF(modelFile);
+  const modelFile = modelMap[element.type] || `${element.type}.glb`;
+  const { scene } = useGLTF(element.modelUrl || `/models/${modelFile}`);
   const clonedScene = useMemo(() => scene.clone(), [scene]);
 
   useEffect(() => {
@@ -91,7 +91,6 @@ export default React.memo(function DraggableElement({ element }) {
     <DragControls
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
-      transformGroup
     >
       <primitive ref={meshRef} object={clonedScene} scale={element.size || [1, 1, 1]} />
     </DragControls>

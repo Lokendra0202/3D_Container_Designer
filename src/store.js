@@ -158,14 +158,14 @@ setContainerDimensions: (dimensions) =>
 
   exportDesign: () => {
     const state = get();
-    return JSON.stringify({ container: state.container, elements: state.elements }, null, 2);
+    return JSON.stringify({ container: state.container, elements: state.elements.filter(el => el.type !== 'custom') }, null, 2);
   },
 
   saveProgress: () => {
     const state = get();
     const progress = {
       container: state.container,
-      elements: state.elements,
+      elements: state.elements.filter(el => el.type !== 'custom'), // Exclude custom elements from save
       selectedElement: state.selectedElement,
       snapToGrid: state.snapToGrid,
       gridSize: state.gridSize,
@@ -395,15 +395,25 @@ setContainerDimensions: (dimensions) =>
     }),
     {
       name: 'container-design-store', // unique name for localStorage key
+      version: 1, // Increment version to invalidate old data with custom elements
       partialize: (state) => ({
         container: state.container,
-        elements: state.elements,
+        elements: state.elements.filter(el => el.type !== 'custom'), // Exclude custom elements from persistence
         selectedElement: state.selectedElement,
         snapToGrid: state.snapToGrid,
         gridSize: state.gridSize,
         snapToRotation: state.snapToRotation,
         rotationSnapAngle: state.rotationSnapAngle
-      })
+      }),
+      onRehydrateStorage: () => (state, error) => {
+        if (state) {
+          // Filter out any custom elements that might have been persisted
+          state.elements = state.elements.filter(el => el.type !== 'custom');
+        }
+        if (error) {
+          console.warn('Error rehydrating store:', error);
+        }
+      }
     }
   )
 );
