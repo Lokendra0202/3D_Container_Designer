@@ -7,6 +7,13 @@ const useStore = create(
   container: { length: 6, width: 2.5, height: 3, material: 'metal' },
   elements: [],
   selectedElement: null,
+  loadingElements: {}, // Track loading state of elements by ID
+  elementErrors: {}, // Track loading errors by ID
+  // Camera recording / playback state
+  cameraKeyframes: [], // { t, position: [x,y,z], quaternion: [x,y,z,w] }
+  cameraRecording: false,
+  cameraPlayback: false,
+  lastRecordingUrl: null,
   materials: ['wood', 'metal', 'plastic', 'glass', 'concrete', 'fabric'],
   colors: ['#ffffff', '#000000', '#ff0000', '#00ff00', '#0000ff'],
   snapToGrid: true,
@@ -391,7 +398,57 @@ setContainerDimensions: (dimensions) =>
 
   canUndo: () => get().past.length > 0,
 
-  canRedo: () => get().future.length > 0
+  canRedo: () => get().future.length > 0,
+
+  // Loading state management
+  setElementLoading: (id, isLoading) => 
+    set((state) => ({
+      loadingElements: {
+        ...state.loadingElements,
+        [id]: isLoading
+      }
+    })),
+
+  setElementError: (id, hasError) =>
+    set((state) => ({
+      elementErrors: {
+        ...state.elementErrors,
+        [id]: hasError
+      }
+    })),
+
+  // Modified addElement to include initial loading state
+  addElement: (element) => set((state) => {
+    const id = Date.now();
+    const position = state.autoArrangeElement(element);
+    return {
+      elements: [...state.elements, { 
+        ...element, 
+        position, 
+        id, 
+        rotation: [0, 0, 0], 
+        isOpen: false, 
+        scale: 1 
+      }],
+      loadingElements: {
+        ...state.loadingElements,
+        [id]: true
+      },
+      past: [...state.past, { 
+        elements: [...state.elements], 
+        container: { ...state.container }, 
+        selectedElement: state.selectedElement 
+      }],
+      future: []
+    };
+  }),
+
+  // Camera recording actions
+  addCameraKeyframe: (keyframe) => set((state) => ({ cameraKeyframes: [...state.cameraKeyframes, keyframe] })),
+  clearCameraKeyframes: () => set({ cameraKeyframes: [] }),
+  setCameraRecording: (isRecording) => set({ cameraRecording: isRecording }),
+  setCameraPlayback: (isPlaying) => set({ cameraPlayback: isPlaying }),
+  setLastRecordingUrl: (url) => set({ lastRecordingUrl: url })
     }),
     {
       name: 'container-design-store', // unique name for localStorage key

@@ -4,6 +4,7 @@ import { OrbitControls, Grid } from "@react-three/drei";
 import * as THREE from "three";
 import useStore from "./store";
 import DraggableElement from "./DraggableElement";
+import CameraRecorderUI, { CameraRecorderInner } from './CameraRecorder';
 
 function ScreenshotHelper() {
   const { gl, scene, camera } = useThree();
@@ -101,6 +102,8 @@ function Viewer() {
         <Suspense fallback={null}>
           <Container />
           <ScreenshotHelper />
+          {/* Camera recorder system inside the canvas so it can access useThree */}
+          <CameraRecorderInner />
         </Suspense>
 
         <OrbitControls
@@ -123,6 +126,8 @@ function Viewer() {
           panSpeed={0.8}
         />
       </Canvas>
+      {/* UI overlay for recorder (renders into document.body via portal) */}
+      <CameraRecorderUI />
     </div>
   );
 }

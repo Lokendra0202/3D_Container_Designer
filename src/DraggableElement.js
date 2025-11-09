@@ -1,7 +1,36 @@
-import React, { useRef, useEffect, useMemo } from "react";
+import React, { useRef, useEffect, useMemo, Suspense } from "react";
 import { useGLTF, DragControls } from "@react-three/drei";
 import * as THREE from "three";
 import useStore from "./store";
+
+// Preload most commonly used models
+useGLTF.preload("/models/bed_sample.glb");
+useGLTF.preload("/models/sofa_glb.glb");
+useGLTF.preload("/models/ceiling_fan.glb");
+useGLTF.preload("/models/door_pack_free.glb");
+useGLTF.preload("/models/window.glb");
+useGLTF.preload("/models/lasa_table_by_ton.glb");
+useGLTF.preload("/models/toilet.glb");
+
+// Loading placeholder mesh
+function LoadingPlaceholder({ size }) {
+  return (
+    <mesh>
+      <boxGeometry args={size} />
+      <meshStandardMaterial color="#cccccc" opacity={0.5} transparent />
+    </mesh>
+  );
+}
+
+// Error fallback mesh
+function ErrorPlaceholder({ size }) {
+  return (
+    <mesh>
+      <boxGeometry args={size} />
+      <meshStandardMaterial color="#ff0000" opacity={0.3} transparent />
+    </mesh>
+  );
+}
 
 const modelMap = {
   bed: "bed_sample.glb",
@@ -47,13 +76,39 @@ const modelMap = {
   table_and_chair: "table_and_chairs.glb",
 };
 
+// Model component with error boundary
+function Model({ url, elementId }) {
+  const setElementLoading = useStore((s) => s.setElementLoading);
+  const setElementError = useStore((s) => s.setElementError);
+  
+  const { scene } = useGLTF(url, 
+    // onProgress
+    (xhr) => {
+      if (xhr.loaded === xhr.total) {
+        setElementLoading(elementId, false);
+        setElementError(elementId, false);
+      }
+    },
+    // onError
+    (error) => {
+      console.error(`Error loading model for element ${elementId}:`, error);
+      setElementLoading(elementId, false);
+      setElementError(elementId, true);
+    }
+  );
+
+  const clonedScene = useMemo(() => scene.clone(), [scene]);
+  return <primitive object={clonedScene} />;
+}
+
 export default React.memo(function DraggableElement({ element }) {
   const meshRef = useRef();
   const { moveElement, snapPosition, validatePosition, updateElement } = useStore();
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [hasError, setHasError] = React.useState(false);
 
   const modelFile = modelMap[element.type] || `${element.type}.glb`;
-  const { scene } = useGLTF(element.modelUrl || `/models/${modelFile}`);
-  const clonedScene = useMemo(() => scene.clone(), [scene]);
+  const modelUrl = element.modelUrl || `/models/${modelFile}`;
 
   useEffect(() => {
     if (meshRef.current) {
@@ -62,7 +117,7 @@ export default React.memo(function DraggableElement({ element }) {
       const scale = element.scale || 1;
       meshRef.current.scale.set(...element.size.map(s => s * scale));
     }
-  }, [element.position, element.rotation, element.size, element.scale]); // Update when these change
+  }, [element.position, element.rotation, element.size, element.scale]);
 
   const handleDragEnd = (event) => {
     if (event && event.object) {
@@ -87,12 +142,36 @@ export default React.memo(function DraggableElement({ element }) {
 
   const handleDragStart = () => updateElement(element.id, { dragging: true });
 
+  const handleLoad = () => {
+    setIsLoading(false);
+    setHasError(false);
+  };
+
+  const handleError = () => {
+    setIsLoading(false);
+    setHasError(true);
+    console.error(`Failed to load model: ${modelUrl}`);
+  };
+
+  const elementError = useStore((s) => s.elementErrors[element.id]);
+
   return (
     <DragControls
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <primitive ref={meshRef} object={clonedScene} scale={element.size || [1, 1, 1]} />
+      <group ref={meshRef} scale={element.size || [1, 1, 1]}>
+        <Suspense fallback={<LoadingPlaceholder size={element.size} />}>
+          {elementError ? (
+            <ErrorPlaceholder size={element.size} />
+          ) : (
+            <Model 
+              url={modelUrl}
+              elementId={element.id}
+            />
+          )}
+        </Suspense>
+      </group>
     </DragControls>
   );
 });

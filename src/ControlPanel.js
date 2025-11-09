@@ -1,5 +1,8 @@
-import { Box, Typography, TextField, Button, Card, CardContent, List, ListItem, ListItemText, Select, MenuItem, FormControl, InputLabel, Divider, Switch, FormControlLabel } from '@mui/material';
-import { Add, Delete, GetApp, TableRestaurant, Chair, Bed, Wc, AcUnit, Undo, Redo, CloudUpload } from '@mui/icons-material';
+import { Box, Typography, TextField, Button, Card, CardContent, List, ListItem, ListItemText, 
+  Select, MenuItem, FormControl, InputLabel, Divider, Switch, FormControlLabel, CircularProgress, 
+  ListItemIcon, Tooltip } from '@mui/material';
+import { Add, Delete, GetApp, TableRestaurant, Chair, Bed, Wc, AcUnit, Undo, Redo, CloudUpload,
+  Error as ErrorIcon, CheckCircle as CheckCircleIcon } from '@mui/icons-material';
 import useStore from './store';
 
 const rotationPresets = [
@@ -321,12 +324,63 @@ function ControlPanel() {
           <Typography variant="h6">Elements</Typography>
           <List>
             {elements.map(el => (
-              <ListItem key={el.id} button onClick={() => selectElement(el.id)} selected={selectedElement === el.id}>
-                <ListItemText primary={`${el.type} - ${el.material}`} />
+              <ListItem 
+                key={el.id} 
+                button 
+                onClick={() => selectElement(el.id)} 
+                selected={selectedElement === el.id}
+                sx={{
+                  opacity: useStore.getState().loadingElements[el.id] ? 0.7 : 1,
+                  transition: 'opacity 0.2s'
+                }}
+              >
+                <ListItemIcon>
+                  {useStore.getState().loadingElements[el.id] ? (
+                    <CircularProgress size={20} />
+                  ) : useStore.getState().elementErrors[el.id] ? (
+                    <Tooltip title="Failed to load model">
+                      <ErrorIcon color="error" />
+                    </Tooltip>
+                  ) : (
+                    <Tooltip title="Model loaded">
+                      <CheckCircleIcon color="success" fontSize="small" />
+                    </Tooltip>
+                  )}
+                </ListItemIcon>
+                <ListItemText 
+                  primary={`${el.type} - ${el.material}`}
+                  secondary={useStore.getState().loadingElements[el.id] ? 'Loading...' : ''}
+                />
               </ListItem>
             ))}
           </List>
-          {selectedElement && <Button variant="outlined" startIcon={<Delete />} onClick={() => removeElement(selectedElement)}>Remove Selected</Button>}
+          {selectedElement && (
+            <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+              <Button 
+                variant="outlined" 
+                startIcon={<Delete />} 
+                onClick={() => removeElement(selectedElement)}
+                disabled={useStore.getState().loadingElements[selectedElement]}
+              >
+                Remove Selected
+              </Button>
+              {useStore.getState().elementErrors[selectedElement] && (
+                <Button
+                  variant="outlined"
+                  color="error"
+                  onClick={() => {
+                    // Trigger a reload by updating the element
+                    const el = elements.find(e => e.id === selectedElement);
+                    if (el) {
+                      updateElement(selectedElement, { ...el });
+                    }
+                  }}
+                >
+                  Retry Load
+                </Button>
+              )}
+            </Box>
+          )}
         </CardContent>
       </Card>
 
