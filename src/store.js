@@ -39,7 +39,6 @@ setContainerDimensions: (dimensions) =>
   autoArrangeElement: (element) => {
     const state = get();
     const container = state.container;
-    const elements = state.elements;
     const halfLength = container.length / 2;
     const halfWidth = container.width / 2;
     const halfHeight = container.height / 2;
@@ -130,14 +129,7 @@ setContainerDimensions: (dimensions) =>
     return position;
   },
 
-  addElement: (element) => set((state) => {
-    const position = state.autoArrangeElement(element);
-    return {
-      elements: [...state.elements, { ...element, position, id: Date.now(), rotation: [0, 0, 0], isOpen: false, scale: 1 }],
-      past: [...state.past, { elements: [...state.elements], container: { ...state.container }, selectedElement: state.selectedElement }],
-      future: []
-    };
-  }),
+  // addElement intentionally defined later (with loading state) — previous simple implementation removed
 
   removeElement: (id) => set((state) => ({
     elements: state.elements.filter(el => el.id !== id),

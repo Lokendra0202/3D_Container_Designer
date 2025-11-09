@@ -104,8 +104,6 @@ function Model({ url, elementId }) {
 export default React.memo(function DraggableElement({ element }) {
   const meshRef = useRef();
   const { moveElement, snapPosition, validatePosition, updateElement } = useStore();
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [hasError, setHasError] = React.useState(false);
 
   const modelFile = modelMap[element.type] || `${element.type}.glb`;
   const modelUrl = element.modelUrl || `/models/${modelFile}`;
@@ -142,16 +140,7 @@ export default React.memo(function DraggableElement({ element }) {
 
   const handleDragStart = () => updateElement(element.id, { dragging: true });
 
-  const handleLoad = () => {
-    setIsLoading(false);
-    setHasError(false);
-  };
-
-  const handleError = () => {
-    setIsLoading(false);
-    setHasError(true);
-    console.error(`Failed to load model: ${modelUrl}`);
-  };
+  // loading/error state handled via store (setElementLoading / setElementError)
 
   const elementError = useStore((s) => s.elementErrors[element.id]);
 

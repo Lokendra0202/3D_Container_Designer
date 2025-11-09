@@ -1,4 +1,4 @@
-import React, { Suspense, useMemo, forwardRef, useImperativeHandle } from "react";
+import React, { Suspense, useMemo, useCallback } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, Grid } from "@react-three/drei";
 import * as THREE from "three";
@@ -9,7 +9,7 @@ import CameraRecorderUI, { CameraRecorderInner } from './CameraRecorder';
 function ScreenshotHelper() {
   const { gl, scene, camera } = useThree();
 
-  const takeScreenshot = () => {
+  const takeScreenshot = useCallback(() => {
     // Force a render to ensure the scene is up to date
     gl.render(scene, camera);
     const canvas = gl.domElement;
@@ -18,12 +18,12 @@ function ScreenshotHelper() {
     link.href = dataURL;
     link.download = 'container-screenshot.png';
     link.click();
-  };
+  }, [gl, scene, camera]);
 
-  // Expose the function to the parent via context or ref
   React.useEffect(() => {
     window.takeScreenshot = takeScreenshot;
-  }, []);
+    return () => { delete window.takeScreenshot; };
+  }, [takeScreenshot]);
 
   return null;
 }
