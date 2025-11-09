@@ -18,10 +18,21 @@
     "conatiner": "file:..",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-scripts": "5.0.1",
+    "react-scripts": "^5.0.1",
     "three": "^0.180.0",
-    "web-vitals": "^2.1.4",
+    "web-vitals": "^3.5.0",
+    "workbox-background-sync": "^7.0.0",
+    "workbox-cacheable-response": "^7.0.0",
+    "workbox-core": "^7.0.0",
+    "workbox-google-analytics": "^7.0.0",
     "zustand": "^5.0.8"
+  },
+  "resolutions": {
+    "glob": "^10.3.10",
+    "rimraf": "^5.0.5",
+    "@jridgewell/sourcemap-codec": "^1.4.15",
+    "workbox-cacheable-response": "^7.0.0",
+    "workbox-google-analytics": "^7.0.0"
   },
   "scripts": {
     "start": "react-scripts start",
