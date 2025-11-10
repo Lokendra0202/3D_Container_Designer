@@ -2,7 +2,7 @@ import { Box, Typography, TextField, Button, Card, CardContent, List, ListItem, 
   Select, MenuItem, FormControl, InputLabel, Switch, FormControlLabel, CircularProgress, 
   ListItemIcon, Tooltip } from '@mui/material';
 import { Add, Delete, GetApp, TableRestaurant, Chair, Bed, Wc, AcUnit, CloudUpload,
-  Error as ErrorIcon, CheckCircle as CheckCircleIcon } from '@mui/icons-material';
+  Error as ErrorIcon, CheckCircle as CheckCircleIcon, Refresh } from '@mui/icons-material';
 import useStore from './store';
 
 const rotationPresets = [
@@ -19,7 +19,7 @@ function ControlPanel() {
     selectElement, materials, colors, exportDesign, saveProgress, 
     loadProgress, snapToGrid, toggleSnapToGrid, gridSize, setGridSize, 
     snapToRotation, toggleSnapToRotation, rotationSnapAngle, setRotationSnapAngle,
-    loadingElements, elementErrors 
+    loadingElements, elementErrors, refreshAllElements
   } = useStore();
 
   const handleAddElement = (type) => {
@@ -170,6 +170,56 @@ function ControlPanel() {
         material = 'wood';
         color = '#8B4513';
         break;
+      case 'fire_extinguisher':
+        size = [0.2, 0.5, 0.2];
+        material = 'metal';
+        color = '#FF0000';
+        break;
+      case 'office_swivel_chair':
+        size = [0.6, 1.2, 0.6];
+        material = 'fabric';
+        color = '#000000';
+        break;
+      case 'metal_shelf':
+        size = [1, 1.5, 0.3];
+        material = 'metal';
+        color = '#C0C0C0';
+        break;
+      case 'paperboard':
+        size = [1, 0.1, 0.8];
+        material = 'cardboard';
+        color = '#D2B48C';
+        break;
+      case 'room_partition_model_5175-5':
+        size = [0.1, container.height, container.width];
+        material = 'wood';
+        color = '#D2B48C';
+        break;
+      case 'managers_office_door':
+        size = [0.9, 2, 0.1];
+        material = 'wood';
+        color = '#8B4513';
+        break;
+      case 'electric_wall_fan':
+        size = [0.5, 0.5, 0.2];
+        material = 'plastic';
+        color = '#FFFFFF';
+        break;
+      case 'wardrobe':
+        size = [1, 2, 0.5];
+        material = 'wood';
+        color = '#8B4513';
+        break;
+      case 'double_bed':
+        size = [1.8, 0.5, 1.8];
+        material = 'fabric';
+        color = '#FFFFFF';
+        break;
+      case 'animated_low-poly_door':
+        size = [0.9, 2, 0.1];
+        material = 'wood';
+        color = '#8B4513';
+        break;
       default:
         size = [1, 1, 1];
         material = materials[0];
@@ -309,7 +359,6 @@ function ControlPanel() {
                 }}
               />
             </Button>
-            <Button variant="contained" startIcon={<Add />} onClick={() => handleAddElement('door')}>Door</Button>
             <Button variant="contained" startIcon={<Add />} onClick={() => handleAddElement('window')}>Window</Button>
             <Button variant="contained" startIcon={<TableRestaurant />} onClick={() => handleAddElement('table')}>Table</Button>
             <Button variant="contained" startIcon={<Chair />} onClick={() => handleAddElement('chair')}>Chair</Button>
@@ -334,8 +383,15 @@ function ControlPanel() {
             <Button variant="contained" startIcon={<Add />} onClick={() => handleAddElement('square_recessed_led')}>Square Recessed LED</Button>
             <Button variant="contained" startIcon={<Add />} onClick={() => handleAddElement('sideboard_kitchen')}>Sideboard Kitchen</Button>
             <Button variant="contained" startIcon={<Chair />} onClick={() => handleAddElement('psx_wooden_chair')}>PSX Wooden Chair</Button>
-            <Button variant="contained" startIcon={<TableRestaurant />} onClick={() => handleAddElement('plastic_table')}>Plastic Table</Button>
             <Button variant="contained" startIcon={<TableRestaurant />} onClick={() => handleAddElement('table_and_chair')}>Table and Chair</Button>
+            <Button variant="contained" startIcon={<Add />} onClick={() => handleAddElement('fire_extinguisher')}>Fire Extinguisher</Button>
+            <Button variant="contained" startIcon={<Chair />} onClick={() => handleAddElement('office_swivel_chair')}>Office Swivel Chair</Button>
+            <Button variant="contained" startIcon={<Add />} onClick={() => handleAddElement('metal_shelf')}>Metal Shelf</Button>
+            <Button variant="contained" startIcon={<Add />} onClick={() => handleAddElement('paperboard')}>Paperboard</Button>
+            <Button variant="contained" startIcon={<Add />} onClick={() => handleAddElement('room_partition_model_5175-5')}>Room Partition</Button>
+            <Button variant="contained" startIcon={<Add />} onClick={() => handleAddElement('managers_office_door')}>Manager's Office Door</Button>
+            <Button variant="contained" startIcon={<AcUnit />} onClick={() => handleAddElement('electric_wall_fan')}>Electric Wall Fan</Button>
+            <Button variant="contained" startIcon={<Add />} onClick={() => handleAddElement('animated_low-poly_door')}>Animated Low-Poly Door</Button>
           </Box>
         </CardContent>
       </Card>
@@ -515,6 +571,18 @@ function ControlPanel() {
           </Box>
         </CardContent>
       </Card>
+
+      <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+        <Button 
+          variant="contained" 
+          color="secondary"
+          onClick={refreshAllElements} 
+          fullWidth
+          startIcon={<Refresh />}
+        >
+          Refresh All Models
+        </Button>
+      </Box>
 
       <Button variant="contained" startIcon={<GetApp />} onClick={handleExport} fullWidth>Export Design</Button>
 

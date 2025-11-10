@@ -480,7 +480,25 @@ const useStore = create(
   clearCameraKeyframes: () => set({ cameraKeyframes: [] }),
   setCameraRecording: (isRecording) => set({ cameraRecording: isRecording }),
   setCameraPlayback: (isPlaying) => set({ cameraPlayback: isPlaying }),
-  setLastRecordingUrl: (url) => set({ lastRecordingUrl: url })
+  setLastRecordingUrl: (url) => set({ lastRecordingUrl: url }),
+
+  // Refresh functionality
+  refreshAllElements: () => set((state) => {
+    // Call cleanup functions for custom elements before clearing
+    state.elements.forEach(el => {
+      if (el.cleanup) {
+        el.cleanup();
+      }
+    });
+
+    // Clear all elements, loading states, errors, and selected element
+    return {
+      elements: [],
+      loadingElements: {},
+      elementErrors: {},
+      selectedElement: null
+    };
+  })
     }),
     {
       name: 'container-design-store', // unique name for localStorage key

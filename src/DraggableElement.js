@@ -75,6 +75,13 @@ const modelMap = {
   psx_wooden_chair: "psx_wooden_chair.glb",
   plastic_table: "lasa_table_by_ton.glb",
   table_and_chair: "table_and_chairs.glb",
+  fire_extinguisher: "fire_extinguisher.glb",
+  office_swivel_chair: "office_swivel_chair.glb",
+  metal_shelf: "metal_shelf.glb",
+  paperboard: "paperboard.glb",
+  "room_partition_model_5175-5": "room_partition_model_5175-5.glb",
+  managers_office_door: "managers_office_door.glb",
+  electric_wall_fan: "electric_wall_fan.glb",
 };
 
 // Model component with error boundary
