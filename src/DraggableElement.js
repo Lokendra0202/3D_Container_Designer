@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useMemo, Suspense } from "react";
 import { useGLTF, DragControls } from "@react-three/drei";
 import * as THREE from "three";
 import useStore from "./store";
+import { fitModelBoundingBox } from './utils/fitModel';
 
 // Preload most commonly used models
 useGLTF.preload("/models/bed_sample.glb");
@@ -77,11 +78,14 @@ const modelMap = {
 };
 
 // Model component with error boundary
-function Model({ url, elementId }) {
+function Model({ url, elementId, elementType, onFit }) {
   const setElementLoading = useStore((s) => s.setElementLoading);
   const setElementError = useStore((s) => s.setElementError);
-  
-  const { scene } = useGLTF(url, 
+  const container = useStore((s) => s.container);
+  const updateElement = useStore((s) => s.updateElement);
+  const element = useStore((s) => s.elements.find(e => e.id === elementId));
+
+  const { scene } = useGLTF(url,
     // onProgress
     (xhr) => {
       if (xhr.loaded === xhr.total) {
@@ -98,6 +102,113 @@ function Model({ url, elementId }) {
   );
 
   const clonedScene = useMemo(() => scene.clone(), [scene]);
+
+  // Compute fit to container and update element (scale + position) once when model loads
+  useEffect(() => {
+    if (!clonedScene) return;
+
+    // Only auto-fit when the element explicitly opts-in via autoFit === true
+    if (element && element.autoFit !== true) {
+      // clear loading flag even if skipping auto-fit
+      setElementLoading(elementId, false);
+      return;
+    }
+
+    try {
+      // Compute bounding box in local space
+      const bbox = new THREE.Box3().setFromObject(clonedScene);
+      const size = new THREE.Vector3();
+      bbox.getSize(size);
+
+      // Avoid zero sizes
+      const eps = 1e-6;
+      const boxX = Math.max(size.x, eps);
+      const boxY = Math.max(size.y, eps);
+      const boxZ = Math.max(size.z, eps);
+
+      // Container available as { length, width, height }
+      const paddingFactor = 0.9; // leave some margin
+      const scaleX = container.length / boxX;
+      const scaleY = container.height / boxY;
+      const scaleZ = container.width / boxZ;
+      let scaleFactor = Math.min(scaleX, scaleY, scaleZ) * paddingFactor;
+      if (!isFinite(scaleFactor) || scaleFactor <= 0) scaleFactor = 1;
+
+      // Per-type rules (override default behavior for some elements)
+      const type = (elementType || '').toLowerCase();
+      const topOffset = 0.05; // small offset from walls/ceiling
+
+      // Helper to compute center and translation
+      const boxCenter = new THREE.Vector3();
+      bbox.getCenter(boxCenter);
+
+      let translation = new THREE.Vector3();
+
+      if (type === 'fan' || type === 'tube_light' || type === 'square_recessed_led') {
+        // Keep fan mostly in X/Z fit, but place near ceiling
+        const scaleH = Math.min(scaleX, scaleZ) * paddingFactor;
+        if (isFinite(scaleH) && scaleH > 0) scaleFactor = Math.min(scaleFactor, scaleH);
+        const scaledSize = size.clone().multiplyScalar(scaleFactor);
+        const desiredCenter = new THREE.Vector3(0, container.height - scaledSize.y / 2 - topOffset, 0);
+        translation = desiredCenter.sub(boxCenter.multiplyScalar(scaleFactor));
+      } else if (type === 'door' || type.includes('door')) {
+        // Doors should match container height (allow small margin)
+        const targetScaleY = (container.height * 0.95) / boxY;
+        if (isFinite(targetScaleY) && targetScaleY > 0) scaleFactor = targetScaleY;
+        const scaledSize = size.clone().multiplyScalar(scaleFactor);
+        const desiredCenter = new THREE.Vector3(0, scaledSize.y / 2, 0);
+        translation = desiredCenter.sub(boxCenter.multiplyScalar(scaleFactor));
+      } else if (type === 'window' || type === 'dirty_window') {
+        // Window: fit to wall width (Z) and place vertically centered
+        const targetScaleZ = (container.width * 0.8) / boxZ;
+        if (isFinite(targetScaleZ) && targetScaleZ > 0) scaleFactor = Math.min(scaleFactor, targetScaleZ);
+        const scaledSize = size.clone().multiplyScalar(scaleFactor);
+        const desiredCenter = new THREE.Vector3(0, container.height / 2, 0);
+        translation = desiredCenter.sub(boxCenter.multiplyScalar(scaleFactor));
+      } else if (type === 'partition' || type === 'cabin_wall' || type === 'wall_panel') {
+        // Partition/wall: expand to container height and width if possible
+        const targetScaleY = container.height / boxY;
+        const targetScaleX = container.length / boxX;
+        const targetScaleZ = container.width / boxZ;
+        const uniform = Math.min(targetScaleY, targetScaleX, targetScaleZ) * paddingFactor;
+        if (isFinite(uniform) && uniform > 0) scaleFactor = uniform;
+        const scaledSize = size.clone().multiplyScalar(scaleFactor);
+        const desiredCenter = new THREE.Vector3(0, scaledSize.y / 2, 0);
+        translation = desiredCenter.sub(boxCenter.multiplyScalar(scaleFactor));
+      } else {
+        // Default: center on floor
+        const scaledSize = size.clone().multiplyScalar(scaleFactor);
+        const desiredCenter = new THREE.Vector3(0, scaledSize.y / 2, 0);
+        translation = desiredCenter.sub(boxCenter.multiplyScalar(scaleFactor));
+      }
+
+      // Final clamps
+      if (!isFinite(translation.x)) translation.x = 0;
+      if (!isFinite(translation.y)) translation.y = 0;
+      if (!isFinite(translation.z)) translation.z = 0;
+
+      // Use utility to compute fit (already computed parts above, but reuse consistent return)
+      const fit = fitModelBoundingBox(bbox, container, elementType, paddingFactor);
+      if (fit) {
+        updateElement(elementId, {
+          scale: fit.scaleFactor,
+          position: fit.position,
+          autoFit: false // prevent re-fitting on future mounts
+        });
+
+        if (typeof onFit === 'function') onFit(fit);
+      }
+
+      // ensure loading cleared
+      setElementLoading(elementId, false);
+      setElementError(elementId, false);
+    } catch (err) {
+      console.error('Error computing fit for model', err);
+      setElementLoading(elementId, false);
+      setElementError(elementId, true);
+    }
+  }, [clonedScene, container, elementId, elementType, onFit, updateElement]);
+
   return <primitive object={clonedScene} />;
 }
 
@@ -157,6 +268,13 @@ export default React.memo(function DraggableElement({ element }) {
             <Model 
               url={modelUrl}
               elementId={element.id}
+              elementType={element.type}
+              onFit={(result) => {
+                // Expose fit result for debugging and potential UI use
+                // result: { scaleFactor, position: [x,y,z], bboxSize: [bx,by,bz] }
+                // You can replace this with a store update or callback prop if needed
+                // console.debug('Model fit result', element.id, result);
+              }}
             />
           )}
         </Suspense>

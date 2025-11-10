@@ -138,8 +138,50 @@ setContainerDimensions: (dimensions) =>
   })),
 
   updateElement: (id, updates) => set((state) => ({
-    elements: state.elements.map(el => el.id === id ? { ...el, ...updates } : el),
-    past: [...state.past, { elements: [...state.elements], container: { ...state.container }, selectedElement: state.selectedElement }],
+    // Only apply update if values actually change to avoid infinite update loops
+    elements: (function(){
+      let changed = false;
+      const newElements = state.elements.map(el => {
+        if (el.id !== id) return el;
+        const merged = { ...el, ...updates };
+        // shallow compare relevant keys
+        const keys = Object.keys(updates);
+        for (const k of keys) {
+          const a = el[k];
+          const b = merged[k];
+          if (Array.isArray(a) && Array.isArray(b)) {
+            if (a.length !== b.length || a.some((v,i)=>v !== b[i])) { changed = true; break; }
+          } else if (a !== b) { changed = true; break; }
+        }
+        return merged;
+      });
+      if (!changed) return state.elements; // no change
+      return newElements;
+    })(),
+    past: (function(){
+      // Only push to past if element actually changed
+      const prev = state.elements;
+      const next = (function(){
+        let changed = false;
+        for (const el of state.elements) {
+          if (el.id === id) {
+            const merged = { ...el, ...updates };
+            const keys = Object.keys(updates);
+            for (const k of keys) {
+              const a = el[k];
+              const b = merged[k];
+              if (Array.isArray(a) && Array.isArray(b)) {
+                if (a.length !== b.length || a.some((v,i)=>v !== b[i])) { changed = true; break; }
+              } else if (a !== b) { changed = true; break; }
+            }
+            if (changed) return [...state.past, { elements: [...state.elements], container: { ...state.container }, selectedElement: state.selectedElement }];
+            return state.past;
+          }
+        }
+        return state.past;
+      })();
+      return next;
+    })(),
     future: []
   })),
 
@@ -393,21 +435,29 @@ setContainerDimensions: (dimensions) =>
   canRedo: () => get().future.length > 0,
 
   // Loading state management
-  setElementLoading: (id, isLoading) => 
-    set((state) => ({
+  setElementLoading: (id, isLoading) => {
+    const state = get();
+    const current = state.loadingElements[id];
+    if (current === isLoading) return; // avoid unnecessary updates
+    set((s) => ({
       loadingElements: {
-        ...state.loadingElements,
+        ...s.loadingElements,
         [id]: isLoading
       }
-    })),
+    }));
+  },
 
-  setElementError: (id, hasError) =>
-    set((state) => ({
+  setElementError: (id, hasError) => {
+    const state = get();
+    const current = state.elementErrors[id];
+    if (current === hasError) return;
+    set((s) => ({
       elementErrors: {
-        ...state.elementErrors,
+        ...s.elementErrors,
         [id]: hasError
       }
-    })),
+    }));
+  },
 
   // Modified addElement to include initial loading state
   addElement: (element) => set((state) => {
@@ -420,7 +470,8 @@ setContainerDimensions: (dimensions) =>
         id, 
         rotation: [0, 0, 0], 
         isOpen: false, 
-        scale: 1 
+        scale: 1,
+        autoFit: true // mark newly added elements to be auto-fitted when their model loads
       }],
       loadingElements: {
         ...state.loadingElements,
