@@ -210,11 +210,6 @@ function ControlPanel() {
         material = 'wood';
         color = '#8B4513';
         break;
-      case 'double_bed':
-        size = [1.8, 0.5, 1.8];
-        material = 'fabric';
-        color = '#FFFFFF';
-        break;
       case 'animated_low-poly_door':
         size = [0.9, 2, 0.1];
         material = 'wood';
