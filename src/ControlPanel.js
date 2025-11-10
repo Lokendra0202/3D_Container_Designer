@@ -1,7 +1,7 @@
 import { Box, Typography, TextField, Button, Card, CardContent, List, ListItem, ListItemText, 
   Select, MenuItem, FormControl, InputLabel, Switch, FormControlLabel, CircularProgress, 
   ListItemIcon, Tooltip } from '@mui/material';
-import { Add, Delete, GetApp, TableRestaurant, Chair, Bed, Wc, AcUnit, Undo, Redo, CloudUpload,
+import { Add, Delete, GetApp, TableRestaurant, Chair, Bed, Wc, AcUnit, CloudUpload,
   Error as ErrorIcon, CheckCircle as CheckCircleIcon } from '@mui/icons-material';
 import useStore from './store';
 
@@ -13,7 +13,14 @@ const rotationPresets = [
 ];
 
 function ControlPanel() {
-  const { container, elements, setContainerDimensions, setContainerMaterial, addElement, removeElement, updateElement, selectedElement, selectElement, materials, colors, exportDesign, saveProgress, loadProgress, snapToGrid, toggleSnapToGrid, gridSize, setGridSize, snapToRotation, toggleSnapToRotation, rotationSnapAngle, setRotationSnapAngle, undo, redo, canUndo, canRedo } = useStore();
+  const { 
+    container, elements, setContainerDimensions, setContainerMaterial, 
+    addElement, removeElement, updateElement, selectedElement, 
+    selectElement, materials, colors, exportDesign, saveProgress, 
+    loadProgress, snapToGrid, toggleSnapToGrid, gridSize, setGridSize, 
+    snapToRotation, toggleSnapToRotation, rotationSnapAngle, setRotationSnapAngle,
+    loadingElements, elementErrors 
+  } = useStore();
 
   const handleAddElement = (type) => {
     let size, material, color;
@@ -246,8 +253,11 @@ function ControlPanel() {
             margin="normal"
             inputProps={{ min: 0.1, max: Math.PI, step: 0.1 }}
           />
+          
         </CardContent>
       </Card>
+
+      
 
       <Card sx={{ mb: 2 }}>
         <CardContent>
@@ -273,16 +283,27 @@ function ControlPanel() {
                 type="file"
                 accept=".glb,.gltf"
                 hidden
+                onClick={(e) => {
+                  // Reset the input value so the same file can be selected again
+                  e.target.value = '';
+                }}
                 onChange={(e) => {
                   const file = e.target.files[0];
                   if (file) {
+                    // Generate a unique name for this upload
+                    const fileName = `custom_${Date.now()}_${file.name}`;
                     const url = URL.createObjectURL(file);
+                    
+                    // Add cleanup function to revoke URL when element is removed
+                    const cleanup = () => URL.revokeObjectURL(url);
+                    
                     addElement({
-                      type: 'custom',
+                      type: fileName,
                       modelUrl: url,
                       size: [1, 1, 1],
                       material: 'custom',
-                      color: '#ffffff'
+                      color: '#ffffff',
+                      cleanup: cleanup // Store cleanup function with element
                     });
                   }
                 }}
@@ -330,14 +351,14 @@ function ControlPanel() {
                 onClick={() => selectElement(el.id)} 
                 selected={selectedElement === el.id}
                 sx={{
-                  opacity: useStore.getState().loadingElements[el.id] ? 0.7 : 1,
+                  opacity: loadingElements[el.id] ? 0.7 : 1,
                   transition: 'opacity 0.2s'
                 }}
               >
                 <ListItemIcon>
-                  {useStore.getState().loadingElements[el.id] ? (
+                  {loadingElements[el.id] ? (
                     <CircularProgress size={20} />
-                  ) : useStore.getState().elementErrors[el.id] ? (
+                  ) : elementErrors[el.id] ? (
                     <Tooltip title="Failed to load model">
                       <ErrorIcon color="error" />
                     </Tooltip>
@@ -349,7 +370,7 @@ function ControlPanel() {
                 </ListItemIcon>
                 <ListItemText 
                   primary={`${el.type} - ${el.material}`}
-                  secondary={useStore.getState().loadingElements[el.id] ? 'Loading...' : ''}
+                  secondary={loadingElements[el.id] ? 'Loading...' : ''}
                 />
               </ListItem>
             ))}
@@ -360,7 +381,7 @@ function ControlPanel() {
                 variant="outlined" 
                 startIcon={<Delete />} 
                 onClick={() => removeElement(selectedElement)}
-                disabled={useStore.getState().loadingElements[selectedElement]}
+                disabled={loadingElements[selectedElement]}
               >
                 Remove Selected
               </Button>
@@ -468,11 +489,7 @@ function ControlPanel() {
 
       <Card sx={{ mb: 2 }}>
         <CardContent>
-          <Typography variant="h6">Undo/Redo</Typography>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button variant="outlined" startIcon={<Undo />} onClick={undo} disabled={!canUndo()}>Undo</Button>
-            <Button variant="outlined" startIcon={<Redo />} onClick={redo} disabled={!canRedo()}>Redo</Button>
-          </Box>
+
         </CardContent>
       </Card>
 

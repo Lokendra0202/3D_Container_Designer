@@ -214,7 +214,7 @@ function Model({ url, elementId, elementType, onFit }) {
 
 export default React.memo(function DraggableElement({ element }) {
   const meshRef = useRef();
-  const { moveElement, snapPosition, validatePosition, updateElement } = useStore();
+  const { moveElement, snapPosition, validatePosition, updateElement, clampPosition } = useStore();
 
   const modelFile = modelMap[element.type] || `${element.type}.glb`;
   const modelUrl = element.modelUrl || `/models/${modelFile}`;
@@ -228,10 +228,20 @@ export default React.memo(function DraggableElement({ element }) {
     }
   }, [element.position, element.rotation, element.size, element.scale]);
 
+  const handleDrag = (event) => {
+    if (event && event.object) {
+      let newPosition = [event.object.position.x, event.object.position.y, event.object.position.z];
+      newPosition = snapPosition(newPosition);
+      newPosition = clampPosition(element.id, newPosition);
+      event.object.position.set(...newPosition);
+    }
+  };
+
   const handleDragEnd = (event) => {
     if (event && event.object) {
       let newPosition = [event.object.position.x, event.object.position.y, event.object.position.z];
       newPosition = snapPosition(newPosition);
+      newPosition = clampPosition(element.id, newPosition);
 
       if (validatePosition(element.id, newPosition)) {
         // Only save state if position actually changed

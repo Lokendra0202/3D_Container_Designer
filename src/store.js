@@ -20,20 +20,15 @@ const useStore = create(
   gridSize: 0.1,
   snapToRotation: false,
   rotationSnapAngle: Math.PI / 2, // 90 degrees
-  past: [],
-  future: [],
+  boundaryMargin: 0.05, // Margin to keep elements from clipping into walls
 
-setContainerDimensions: (dimensions) =>
+  setContainerDimensions: (dimensions) =>
         set((state) => ({
-          container: { ...state.container, ...dimensions },
-          past: [...state.past, { elements: [...state.elements], container: { ...state.container }, selectedElement: state.selectedElement }],
-          future: []
+          container: { ...state.container, ...dimensions }
         })),
 
   setContainerMaterial: (material) => set((state) => ({
-    container: { ...state.container, material },
-    past: [...state.past, { elements: [...state.elements], container: { ...state.container }, selectedElement: state.selectedElement }],
-    future: []
+    container: { ...state.container, material }
   })),
 
   autoArrangeElement: (element) => {
@@ -131,11 +126,19 @@ setContainerDimensions: (dimensions) =>
 
   // addElement intentionally defined later (with loading state) — previous simple implementation removed
 
-  removeElement: (id) => set((state) => ({
-    elements: state.elements.filter(el => el.id !== id),
-    past: [...state.past, { elements: [...state.elements], container: { ...state.container }, selectedElement: state.selectedElement }],
-    future: []
-  })),
+  removeElement: (id) => set((state) => {
+    // Find the element to be removed
+    const elementToRemove = state.elements.find(el => el.id === id);
+    
+    // If it's a custom element with cleanup function, call it
+    if (elementToRemove && elementToRemove.cleanup) {
+      elementToRemove.cleanup();
+    }
+    
+    return {
+      elements: state.elements.filter(el => el.id !== id)
+    };
+  }),
 
   updateElement: (id, updates) => set((state) => ({
     // Only apply update if values actually change to avoid infinite update loops
@@ -157,32 +160,7 @@ setContainerDimensions: (dimensions) =>
       });
       if (!changed) return state.elements; // no change
       return newElements;
-    })(),
-    past: (function(){
-      // Only push to past if element actually changed
-      const prev = state.elements;
-      const next = (function(){
-        let changed = false;
-        for (const el of state.elements) {
-          if (el.id === id) {
-            const merged = { ...el, ...updates };
-            const keys = Object.keys(updates);
-            for (const k of keys) {
-              const a = el[k];
-              const b = merged[k];
-              if (Array.isArray(a) && Array.isArray(b)) {
-                if (a.length !== b.length || a.some((v,i)=>v !== b[i])) { changed = true; break; }
-              } else if (a !== b) { changed = true; break; }
-            }
-            if (changed) return [...state.past, { elements: [...state.elements], container: { ...state.container }, selectedElement: state.selectedElement }];
-            return state.past;
-          }
-        }
-        return state.past;
-      })();
-      return next;
-    })(),
-    future: []
+    })()
   })),
 
   selectElement: (id) => set({ selectedElement: id }),
@@ -192,9 +170,7 @@ setContainerDimensions: (dimensions) =>
       el.id === id
         ? { ...el, position: [...position] }
         : el
-    ),
-    past: [...state.past, { elements: [...state.elements], container: { ...state.container }, selectedElement: state.selectedElement }],
-    future: []
+    )
   })),
 
   exportDesign: () => {
@@ -235,9 +211,7 @@ setContainerDimensions: (dimensions) =>
             snapToGrid: progress.snapToGrid,
             gridSize: progress.gridSize,
             snapToRotation: progress.snapToRotation,
-            rotationSnapAngle: progress.rotationSnapAngle,
-            past: [],
-            future: []
+            rotationSnapAngle: progress.rotationSnapAngle
           });
         } catch (error) {
           console.error('Error loading progress:', error);
@@ -245,6 +219,29 @@ setContainerDimensions: (dimensions) =>
       };
       reader.readAsText(file);
     }
+  },
+
+  clampPosition: (id, newPosition, elementOverride = null) => {
+    const state = get();
+    const elements = state.elements;
+    const element = elementOverride || elements.find(el => el.id === id);
+    if (!element) return newPosition;
+
+    const container = state.container;
+    const halfLength = container.length / 2;
+    const halfWidth = container.width / 2;
+    const halfHeight = container.height / 2;
+
+    const margin = state.boundaryMargin;
+    const scaledSize = element.size.map(s => s * (element.scale || 1));
+
+    // Clamp position to stay within bounds
+    const clamped = [...newPosition];
+    clamped[0] = Math.max(-halfLength + scaledSize[0]/2 + margin, Math.min(halfLength - scaledSize[0]/2 - margin, clamped[0]));
+    clamped[1] = Math.max(0 + scaledSize[1]/2 + margin, Math.min(halfHeight - scaledSize[1]/2 - margin, clamped[1]));
+    clamped[2] = Math.max(-halfWidth + scaledSize[2]/2 + margin, Math.min(halfWidth - scaledSize[2]/2 - margin, clamped[2]));
+
+    return clamped;
   },
 
   validatePosition: (id, newPosition, elementOverride = null) => {
@@ -259,7 +256,7 @@ setContainerDimensions: (dimensions) =>
     const halfHeight = container.height / 2;
 
     // Check bounds: element should not go outside container (accounting for scaled element size)
-    const margin = 0.05; // Small margin for walls
+    const margin = state.boundaryMargin;
     const scaledSize = element.size.map(s => s * (element.scale || 1));
     if (
       newPosition[0] - scaledSize[0]/2 < -halfLength + margin ||
@@ -401,38 +398,34 @@ setContainerDimensions: (dimensions) =>
 
   setRotationSnapAngle: (angle) => set({ rotationSnapAngle: angle }),
 
-  saveState: () => set((state) => ({
-    past: [...state.past, { elements: [...state.elements], container: { ...state.container }, selectedElement: state.selectedElement }],
-    future: []
-  })),
-
-  undo: () => set((state) => {
-    if (state.past.length === 0) return state;
-    const previous = state.past[state.past.length - 1];
-    return {
-      elements: previous.elements,
-      container: previous.container,
-      selectedElement: previous.selectedElement,
-      past: state.past.slice(0, -1),
-      future: [{ elements: [...state.elements], container: { ...state.container }, selectedElement: state.selectedElement }, ...state.future]
-    };
+  // Helper function to create deep copy of element
+  _copyElement: (el) => ({
+    ...el,
+    position: el.position ? [...el.position] : [0, 0, 0],
+    rotation: el.rotation ? [...el.rotation] : [0, 0, 0],
+    size: el.size ? [...el.size] : [1, 1, 1],
+    scale: el.scale || 1,
+    autoFit: el.autoFit || false,
+    modelUrl: el.modelUrl || null,
+    type: el.type,
+    material: el.material,
+    color: el.color,
+    isOpen: el.isOpen || false
   }),
 
-  redo: () => set((state) => {
-    if (state.future.length === 0) return state;
-    const next = state.future[0];
-    return {
-      elements: next.elements,
-      container: next.container,
-      selectedElement: next.selectedElement,
-      past: [...state.past, { elements: [...state.elements], container: { ...state.container }, selectedElement: state.selectedElement }],
-      future: state.future.slice(1)
-    };
+  // Helper function to create state snapshot
+  _createSnapshot: (state) => ({
+    elements: state.elements.map(el => state._copyElement(el)),
+    container: { ...state.container },
+    selectedElement: state.selectedElement,
+    loadingElements: { ...state.loadingElements },
+    elementErrors: { ...state.elementErrors }
   }),
 
-  canUndo: () => get().past.length > 0,
-
-  canRedo: () => get().future.length > 0,
+  // History state management is currently disabled
+  saveState: () => {},
+  canUndo: () => false,
+  canRedo: () => false,
 
   // Loading state management
   setElementLoading: (id, isLoading) => {
@@ -463,6 +456,22 @@ setContainerDimensions: (dimensions) =>
   addElement: (element) => set((state) => {
     const id = Date.now();
     const position = state.autoArrangeElement(element);
+    
+    // Save current state before making changes
+    const previousState = {
+      elements: state.elements.map(el => ({
+        ...el,
+        position: [...el.position],
+        rotation: el.rotation ? [...el.rotation] : [0, 0, 0],
+        size: [...el.size],
+        scale: el.scale || 1
+      })),
+      container: { ...state.container },
+      selectedElement: state.selectedElement,
+      loadingElements: { ...state.loadingElements },
+      elementErrors: { ...state.elementErrors }
+    };
+    
     return {
       elements: [...state.elements, { 
         ...element, 
@@ -476,13 +485,7 @@ setContainerDimensions: (dimensions) =>
       loadingElements: {
         ...state.loadingElements,
         [id]: true
-      },
-      past: [...state.past, { 
-        elements: [...state.elements], 
-        container: { ...state.container }, 
-        selectedElement: state.selectedElement 
-      }],
-      future: []
+      }
     };
   }),
 
