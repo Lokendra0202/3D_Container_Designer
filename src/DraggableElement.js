@@ -149,8 +149,7 @@ function Model({ url, elementId, elementType, onFit }) {
         // Keep fan mostly in X/Z fit, but place near ceiling
         const scaleH = Math.min(scaleX, scaleZ) * paddingFactor;
         if (isFinite(scaleH) && scaleH > 0) scaleFactor = Math.min(scaleFactor, scaleH);
-        const scaledSize = size.clone().multiplyScalar(scaleFactor);
-        const desiredCenter = new THREE.Vector3(0, container.height - scaledSize.y / 2 - topOffset, 0);
+        const desiredCenter = new THREE.Vector3(0, container.height - (size.y * scaleFactor) / 2 - topOffset, 0);
         translation = desiredCenter.sub(boxCenter.multiplyScalar(scaleFactor));
       } else if (type === 'door' || type.includes('door')) {
         // Doors should match container height (allow small margin)
@@ -208,7 +207,7 @@ function Model({ url, elementId, elementType, onFit }) {
       setElementLoading(elementId, false);
       setElementError(elementId, true);
     }
-  }, [clonedScene, container, elementId, elementType, onFit, updateElement]);
+  }, [clonedScene, container, elementId, elementType, onFit, updateElement, element, setElementError, setElementLoading]);
 
   return <primitive object={clonedScene} />;
 }
@@ -229,14 +228,7 @@ export default React.memo(function DraggableElement({ element }) {
     }
   }, [element.position, element.rotation, element.size, element.scale]);
 
-  const handleDrag = (event) => {
-    if (event && event.object) {
-      let newPosition = [event.object.position.x, event.object.position.y, event.object.position.z];
-      newPosition = snapPosition(newPosition);
-      newPosition = clampPosition(element.id, newPosition);
-      event.object.position.set(...newPosition);
-    }
-  };
+
 
   const handleDragEnd = (event) => {
     if (event && event.object) {

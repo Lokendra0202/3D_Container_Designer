@@ -32,8 +32,7 @@ export function fitModelBoundingBox(box3, container, type = '', paddingFactor = 
   if (typeKey === 'fan' || typeKey === 'tube_light' || typeKey === 'square_recessed_led') {
     const scaleH = Math.min(scaleX, scaleZ) * paddingFactor;
     if (isFinite(scaleH) && scaleH > 0) scaleFactor = Math.min(scaleFactor, scaleH);
-    const scaledSize = size.clone().multiplyScalar(scaleFactor);
-    const desiredCenter = new THREE.Vector3(0, container.height - scaledSize.y / 2 - topOffset, 0);
+    const desiredCenter = new THREE.Vector3(0, container.height - (size.y * scaleFactor) / 2 - topOffset, 0);
     translation = desiredCenter.sub(boxCenter.multiplyScalar(scaleFactor));
   } else if (typeKey === 'door' || typeKey.includes('door')) {
     const targetScaleY = (container.height * 0.95) / boxY;
