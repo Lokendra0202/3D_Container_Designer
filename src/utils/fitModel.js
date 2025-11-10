@@ -43,7 +43,6 @@ export function fitModelBoundingBox(box3, container, type = '', paddingFactor = 
   } else if (typeKey === 'window' || typeKey === 'dirty_window') {
     const targetScaleZ = (container.width * 0.8) / boxZ;
     if (isFinite(targetScaleZ) && targetScaleZ > 0) scaleFactor = Math.min(scaleFactor, targetScaleZ);
-    const scaledSize = size.clone().multiplyScalar(scaleFactor);
     const desiredCenter = new THREE.Vector3(0, container.height / 2, 0);
     translation = desiredCenter.sub(boxCenter.multiplyScalar(scaleFactor));
   } else if (typeKey === 'partition' || typeKey === 'cabin_wall' || typeKey === 'wall_panel') {

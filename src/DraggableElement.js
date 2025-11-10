@@ -162,7 +162,6 @@ function Model({ url, elementId, elementType, onFit }) {
         // Window: fit to wall width (Z) and place vertically centered
         const targetScaleZ = (container.width * 0.8) / boxZ;
         if (isFinite(targetScaleZ) && targetScaleZ > 0) scaleFactor = Math.min(scaleFactor, targetScaleZ);
-        const scaledSize = size.clone().multiplyScalar(scaleFactor);
         const desiredCenter = new THREE.Vector3(0, container.height / 2, 0);
         translation = desiredCenter.sub(boxCenter.multiplyScalar(scaleFactor));
       } else if (type === 'partition' || type === 'cabin_wall' || type === 'wall_panel') {
