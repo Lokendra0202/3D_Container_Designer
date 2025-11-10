@@ -457,22 +457,8 @@ const useStore = create(
     const id = Date.now();
     const position = state.autoArrangeElement(element);
     
-    // Save current state before making changes
-    const previousState = {
-      elements: state.elements.map(el => ({
-        ...el,
-        position: [...el.position],
-        rotation: el.rotation ? [...el.rotation] : [0, 0, 0],
-        size: [...el.size],
-        scale: el.scale || 1
-      })),
-      container: { ...state.container },
-      selectedElement: state.selectedElement,
-      loadingElements: { ...state.loadingElements },
-      elementErrors: { ...state.elementErrors }
-    };
-    
     return {
+      ...state,
       elements: [...state.elements, { 
         ...element, 
         position, 

@@ -113,6 +113,7 @@ function Model({ url, elementId, elementType, onFit }) {
       setElementLoading(elementId, false);
       return;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
 
     try {
       // Compute bounding box in local space
